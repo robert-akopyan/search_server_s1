@@ -220,7 +220,7 @@ private:
 			}
 			const double inverse_document_freq = ComputeWordInverseDocumentFreq(word);
 			for (const auto[document_id, term_freq] : word_to_document_freqs_.at(word)) {
-				const auto document = documents_.at(document_id);
+				const auto& document = documents_.at(document_id);
 				if (predicat(document_id, document.status, document.rating)) {
 					document_to_relevance[document_id] += term_freq * inverse_document_freq;
 				}
