@@ -210,12 +210,6 @@ private:
 		return log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
 	}
 
-/*
-	auto oc = std::copy_if(matched_documents.begin(), matched_documents.end(), matched_documents.begin(),
-		[predicat, this](const auto& Doc) {return predicat(Doc.id, documents_.at(Doc.id).status, Doc.rating); });
-	matched_documents.resize(std::distance(matched_documents.begin(), oc));
-*/
-
 	template <typename Predicat>
 	vector<Document> FindAllDocuments(const Query& query, Predicat predicat) const {
 		map<int, double> document_to_relevance;
