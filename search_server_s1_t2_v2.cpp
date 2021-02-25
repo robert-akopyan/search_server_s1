@@ -77,21 +77,16 @@ public:
 			});
 	}
 
-	vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus stat = DocumentStatus::ACTUAL) const {
-		return FindTopDocuments(raw_query, [stat,this](int document_id, DocumentStatus status, int rating)
-		{
-			return status == stat;
+	vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status_in = DocumentStatus::ACTUAL) const {
+		return FindTopDocuments(raw_query, [status_in,this](int document_id, DocumentStatus status, int rating){
+			return status == status_in;
 		});
 	}
 
-	template <typename Pred>
-	vector<Document> FindTopDocuments(const string& raw_query, Pred pred) const {
+	template <typename Predicat>
+	vector<Document> FindTopDocuments(const string& raw_query, Predicat predicat) const {
 		const Query query = ParseQuery(raw_query);
-		auto matched_documents = FindAllDocuments(query);
-
-		auto oc = std::copy_if(matched_documents.begin(), matched_documents.end(), matched_documents.begin(),
-			[pred, this](const auto& Doc) {return pred(Doc.id, documents_.at(Doc.id).status, Doc.rating); });
-		matched_documents.resize(std::distance(matched_documents.begin(), oc));
+		auto matched_documents = FindAllDocuments(query, predicat);
 
 		sort(matched_documents.begin(), matched_documents.end(),
 			[](const Document& lhs, const Document& rhs) {
@@ -215,15 +210,25 @@ private:
 		return log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
 	}
 
-	vector<Document> FindAllDocuments(const Query& query) const {
+/*
+	auto oc = std::copy_if(matched_documents.begin(), matched_documents.end(), matched_documents.begin(),
+		[predicat, this](const auto& Doc) {return predicat(Doc.id, documents_.at(Doc.id).status, Doc.rating); });
+	matched_documents.resize(std::distance(matched_documents.begin(), oc));
+*/
+
+	template <typename Predicat>
+	vector<Document> FindAllDocuments(const Query& query, Predicat predicat) const {
 		map<int, double> document_to_relevance;
+
 		for (const string& word : query.plus_words) {
 			if (word_to_document_freqs_.count(word) == 0) {
 				continue;
 			}
 			const double inverse_document_freq = ComputeWordInverseDocumentFreq(word);
 			for (const auto[document_id, term_freq] : word_to_document_freqs_.at(word)) {
-				document_to_relevance[document_id] += term_freq * inverse_document_freq;
+				if (predicat(document_id, documents_.at(document_id).status, documents_.at(document_id).rating)) {
+					document_to_relevance[document_id] += term_freq * inverse_document_freq;
+				}
 			}
 		}
 
